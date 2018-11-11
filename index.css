@@ -376,8 +376,9 @@ body {
         padding-top: 0;
       }
       #directions-panel {
+        color: white;
         margin-top: 10px;
-        background-color: #FFEE77;
+        background-color: #00b33c;
         padding: 10px;
         overflow: scroll;
         height: 174px;
