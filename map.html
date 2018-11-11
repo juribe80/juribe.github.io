@@ -4,111 +4,261 @@
     <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
     <meta charset="utf-8">
     <title>Waypoints in Directions</title>
+    <style>
+      #right-panel {
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+
+      #right-panel select, #right-panel input {
+        font-size: 15px;
+      }
+
+      #right-panel select {
+        width: 100%;
+      }
+
+      #right-panel i {
+        font-size: 12px;
+      }
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+        height: 100%;
+        float: left;
+        width: 70%;
+        height: 100%;
+      }
+      #right-panel {
+        margin: 20px;
+        border-width: 2px;
+        width: 20%;
+        height: 400px;
+        float: left;
+        text-align: left;
+        padding-top: 0;
+      }
+      #directions-panel {
+        margin-top: 10px;
+        background-color: #FFEE77;
+        padding: 10px;
+        overflow: scroll;
+        height: 174px;
+      }
+    </style>
     <script src="jquery-3.3.1.min.js"></script>
+
+    <script>
+        var currentMarkers = [];
+        var nameLocations = [];
+        var infoWindow;
+        var map;
+
+        //initializes map
+        function initMap() {
+            var directionsService = new google.maps.DirectionsService;
+            var directionsDisplay = new google.maps.DirectionsRenderer;
+
+            map = new google.maps.Map(document.getElementById('map'), {
+              zoom: 5,
+              center: {lat: 36.0768222, lng: -80.9551165}
+            });
+            directionsDisplay.setMap(map);
+
+            document.getElementById('submit').addEventListener('click', function() {
+              calculateAndDisplayRoute(directionsService, directionsDisplay);
+            });
+        }
+
+        //updates markers on map after button click
+        function updateMap(minRating) {
+            if (nameLocations.length == 0){
+              console.log('nameLocations has zero index...exiting loop');
+              return;
+            }
+
+            //removes last index of nameLocations and saves it into location variable
+            var location = nameLocations.splice(-1,1);
+            var cord1;
+            var cord2;
+            var i;
+            //search within coordinate 'database' for coordinates
+            for(i = 0; i < coordinates.length; i++){
+                console.log(i.toString() + '. Comparing ' + coordinates[i][0] + ' and ' + location);
+                if(coordinates[i][0] == location){
+                    cord1 = coordinates[i][1];
+                    cord2 = coordinates[i][2];
+                    console.log('Equivalent found! cord1 = ' + cord1.toString() + ' cord2 = ' + cord2.toString());
+                    break;
+                }
+            }
+
+            //var center = new google.maps.LatLng(41.85, -87.65);
+            var center = new google.maps.LatLng(cord1, cord2);
+            var request = {
+                location: center,
+                radius: 3219,                           //radius is in meters, 8047 m = 5 miles
+                types: ['restaurant']
+            };
+
+            infoWindow = new google.maps.InfoWindow(); 
+
+            var service = new google.maps.places.PlacesService(map);
+
+            clearMarkers();
+
+            //updates and places new markers based on condition
+            service.nearbySearch(request, function(results, status){
+                if (status == google.maps.places.PlacesServiceStatus.OK)
+                    for(var i = 0; i < results.length; i++)
+                        if (results[i].rating >= minRating)
+                            createMarker(results[i]);
+            });
+
+            //run function again
+            updateMap(minRating);
+        }
+
+        //resets and removes all current markers
+        function clearMarkers(){
+            for(var i = 0; i < currentMarkers.length; i++)
+                currentMarkers[i].setMap(null);
+            currentMarkers = [];
+        }
+
+        //creates marker for each location
+        function createMarker(place){
+            var placeLoc = place.geometry.location;
+            var marker = new google.maps.Marker({
+                map: map,
+                draggable: true,
+                animation: google.maps.Animation.DROP,
+                position: place.geometry.location
+            });
+
+            currentMarkers.push(marker);        //adds google.maps.Marker object into array
+
+            //listens for whenever marker is clicked, display infoWindow
+            google.maps.event.addListener(marker, 'click', function(){
+                var imgPath = place.photos[0].getUrl({maxWidth: 200, maxHeight: 200});
+                var string = '<div> <img src=' + imgPath + '> </div>' + '<h2>' + place.name + '</h2><h4>Rating: ' + place.rating + '</h4>' + '\n<h5>Address: ' + place.formatted_address + '</h5> <h6>\nPrice Level: ' + place.price_level + '</h6>'
+                infoWindow.setContent(string);      //content set for each info window
+                infoWindow.open(map, this);
+
+                //closes infoWindow after clicking outside of it
+                google.maps.event.addListener(map, 'click', function(){
+                    infoWindow.close(map, this);
+                })
+            })
+        }
+
+        //list of major cities and their coordinates, used for get_hot_spots()
+        var coordinates = [
+            ['Princeton, NJ, USA',40.3454139,-74.7247762],
+            ['New York, NY, USA',40.7013427,-74.014831],
+            ['Miami, FL, USA',25.7844002,-80.2888567],
+            ['Washington, DC, USA',38.8943144,-77.1354377],
+            ['San Francisco, CA, USA',37.757815,-122.4891015],
+            ['Chicago, IL, USA',41.8339042,-87.9750827],
+            ['Jacksonville, FL, USA',30.3485355,-81.9991178],
+            ['Atlanta, GA, USA',33.7679192,-84.5462729],
+            ['Myrtle Beach, SC, USA',33.7184407,-78.9309958],
+        ];
+
+        //autofill function used for input boxes
+        function activateAutoFill(){
+            var input = '';
+            if (document.getElementById('start').value.length != 0){
+              input = document.getElementById('start');
+            }
+            else if (document.getElementById('end').value.length != 0){
+              input = document.getElementById('end');
+            }
+            else if (document.getElementById('wayPointText').value.length != 0){
+              input = document.getElementById('wayPointText');
+            }
+            
+            var autocomplete = new google.maps.places.Autocomplete(input);
+        }
+
+    </script>
     <link rel="stylesheet" type="text/css" href="index.css">
      <link rel="stylesheet" href="https://unpkg.com/tachyons@4.10.0/css/tachyons.min.css"/>
    <link rel="stylesheet" href="https://unpkg.com/flickity@2/dist/flickity.min.css">
     <script src="https://unpkg.com/flickity@2/dist/flickity.pkgd.min.js"></script>
-  </head>
+</head>
   <body>
-    <header class="bg-white w-100 ph3 pv3 pv4-ns ph4-m ph5-l">
+      <header class="bg-white w-100 ph3 pv3 pv4-ns ph4-m ph5-l">
       <nav class="f4 fw6 ttu tracked">
         <a class="link dim dark-green dib mr3" href="index.html" title="Home">mojamapa</a>
         <a class="link dim black dib mr3" href="index.html#writtenContent" title="About">About</a>
         <a class="link dim black dib" href="index.html#contactInfo" title="Contact">Contact</a>
       </nav>
     </header>
-
     <div id="map"></div>
     <div id="right-panel">
     <div>
+
+    <script>
+        function refreshMarkers(){
+            if(document.getElementById('4star').checked)
+                updateMap(4);
+            else if(document.getElementById('3star').checked)
+                updateMap(3);
+            else
+                document.write("No valid checkbox selected.");
+        }
+    </script>
+
     <b>Start:</b>
     <br>
-    <input type="text" id="start" value="">
+    <input type="text" id="start" name="search_term" value="" oninput="activateAutoFill()">
 
-
-    <!-- <select id="start">
-      <option value="168 Canterbury Ct, east windsor, nj">home</option>
-      <option value="Halifax, NS">Halifax, NS</option>
-      <option value="Boston, MA">Boston, MA</option>
-      <option value="New York, NY">New York, NY</option>
-      <option value="Miami, FL">Miami, FL</option>
-    </select> -->
-    <br>
-
-    <b>Waypoints:</b> <br>
-    <input type="text" id="wayPointText" value=""> <button  id="next" onclick="addWayPoint()">Add</button>
-    <ul id="wayPoints"><!--
-      <li id="wayPoint" class="wayPoint">Myrtle Beach, SC <button id="wayPointButton" onclick="removeWayPoint()">Remove</button></li>
-      <li id="wayPoint" class="wayPoint">Atlanta, GA  <button id="wayPointButton" onclick="removeWayPoint()">Remove</button></li> -->
+    <br> <b>Waypoints:</b> <br>
+    <input type="text" id="wayPointText" name="search_term" value="" oninput="activateAutoFill()"> 
+    <button  id="next" onclick="addWayPoint()">Add</button>
+    
+    <ul id="wayPoints">
+      <!--<li id="wayPoint" class="wayPoint">Myrtle Beach, SC <button id="wayPointButton" onclick="removeWayPoint()">Remove</button></li>
+      <li id="wayPoint" class="wayPoint">Atlanta, GA  <button id="wayPointButton" onclick="removeWayPoint()">Remove</button></li>
+    -->
     </ul>
 
-    <!--
-    <b>Waypoints:</b> <br>
-    <i>(Ctrl+Click or Cmd+Click for multiple selection)</i> <br>
-
-    <select multiple id="waypoints">
-      <option value="montreal, quebec">Montreal, QBC</option>
-      <option value="toronto, ont">Toronto, ONT</option>
-      <option value="chicago, il">Chicago</option>
-      <option value="winnipeg, mb">Winnipeg</option>
-      <option value="fargo, nd">Fargo</option>
-      <option value="calgary, ab">Calgary</option>
-      <option value="spokane, wa">Spokane</option>
-    </select>
-
-    <br> -->
     <b>End:</b>
     <br>
-    <input type="text" id="end" value="">
-    <!--
-    <select id="end">
-      <option value="Vancouver, BC">Vancouver, BC</option>
-      <option value="Seattle, WA">Seattle, WA</option>
-      <option value="San Francisco, CA">San Francisco, CA</option>
-      <option value="Los Angeles, CA">Los Angeles, CA</option>
-    </select> 
-    -->
+    <input type="text" id="end" name="search_term" value="" oninput="activateAutoFill()">
+
     <br>
       <input type="submit" id="submit">
+      
     </div>
+
+    <form>
+      <fieldset>
+       <legend>Selecting Minimum Rating:</legend>
+       <p>
+          <!-- name = "radSize" is kept in order to only enable 1 radio button active at a time-->
+          <label>Ratings: </label>            
+          <input type = "radio"
+                 name = "radSize"     
+                 id = "4star" />
+          <label>4 Star</label>
+          <input type = "radio"
+                 name = "radSize"
+                 id = "3star" />
+          <label>3 Star</label>
+        </p>       
+      </fieldset>     
+    </form>
+
+    <button type="button" onclick=refreshMarkers()>Refresh</button>
+
     <div id="directions-panel"></div>
     </div>
-
-    <section>
-
-<div id="contactInfo">
-<footer class="pv4 ph3 ph5-ns tc">
-  <a class="link dim dark-green dib h2 w2 br-100 mr3 " href="#" title="">
-    <svg data-icon="facebook" viewBox="0 0 32 32" style="fill:currentcolor">
-      <title>facebook icon</title>
-      <path d="M8 12 L13 12 L13 8 C13 2 17 1 24 2 L24 7 C20 7 19 7 19 10 L19 12 L24 12 L23 18 L19 18 L19 30 L13 30 L13 18 L8 18 z"></path>
-    </svg>
-  </a>
-  <a class="link dim dark-green dib h2 w2 br-100 mr3 " href="#" title="">
-    <svg data-icon="twitter" viewBox="0 0 32 32" style="fill:currentcolor">
-      <title>twitter icon</title>
-      <path d="M2 4 C6 8 10 12 15 11 A6 6 0 0 1 22 4 A6 6 0 0 1 26 6 A8 8 0 0 0 31 4 A8 8 0 0 1 28 8 A8 8 0 0 0 32 7 A8 8 0 0 1 28 11 A18 18 0 0 1 10 30 A18 18 0 0 1 0 27 A12 12 0 0 0 8 24 A8 8 0 0 1 3 20 A8 8 0 0 0 6 19.5 A8 8 0 0 1 0 12 A8 8 0 0 0 3 13 A8 8 0 0 1 2 4"></path>
-    </svg>
-  </a>
-  <a class="link dim dark-green dib br-100 h2 w2 mr3 " href="#https://github.com/juribe80/MojaMapa" title="">
-    <svg data-icon="github" viewBox="0 0 32 32" style="fill:currentcolor">
-      <title>github icon</title>
-      <path d="M0 18 C0 12 3 10 3 9 C2.5 7 2.5 4 3 3 C6 3 9 5 10 6 C12 5 14 5 16 5 C18 5 20 5 22 6 C23 5 26 3 29 3 C29.5 4 29.5 7 29 9 C29 10 32 12 32 18 C32 25 30 30 16 30 C2 30 0 25 0 18 M3 20 C3 24 4 28 16 28 C28 28 29 24 29 20 C29 16 28 14 16 14 C4 14 3 16 3 20 M8 21 A1.5 2.5 0 0 0 13 21 A1.5 2.5 0 0 0 8 21 M24 21 A1.5 2.5 0 0 0 19 21 A1.5 2.5 0 0 0 24 21 z"></path>
-    </svg>
-  </a>
-  <center>
-  <div class="mt4">
-    <a href="#" class="f4 link dim dark-green dib mr3 mr4-ns">Help</a>
-    <a href="#" class="f4 link dim dark-green dib mr3 mr4-ns">Send feedback</a>
-    <a href="#" class="f4 link dim dark-green dib mr3 mr4-ns">Privacy</a>
-    <a href="#" class="f4 link dim dark-green dib">Terms</a>
-  </div>
-</center>
-</div>
-</footer>
-
-    </section>
     <script>
 
       function addWayPoint(){
@@ -125,44 +275,29 @@
         elem2.parentNode.removeChild(elem2);
       }
 
-      function initMap() {
-        var directionsService = new google.maps.DirectionsService;
-        var directionsDisplay = new google.maps.DirectionsRenderer;
-        var map = new google.maps.Map(document.getElementById('map'), {
-          zoom: 6,
-          center: {lat: 41.85, lng: -87.65}
-        });
-        directionsDisplay.setMap(map);
-
-        document.getElementById('submit').addEventListener('click', function() {
-          calculateAndDisplayRoute(directionsService, directionsDisplay);
-        });
-      }
-
       function calculateAndDisplayRoute(directionsService, directionsDisplay) {
         var waypts = [];
+        //var nameLocations = [];
 
+        //inserts each waypoint into the array
         $(".wayPoint").each(function(){
+          var str = $(this).text();
+          str = str.slice(0,-7);
           waypts.push({
-            location: $(this).text(),
+            location: str,
             stopover: true
           });
+          nameLocations.push(str);
         });
-      /*       
-       $.each(waypts, function( index, value ){
-        console.log(value);
-      }); */
 
-        /*
-        var checkboxArray = document.getElementById('waypoints');
-        for (var i = 0; i < checkboxArray.length; i++) {
-          if (checkboxArray.options[i].selected) {
-            waypts.push({
-              location: checkboxArray[i].value,
-              stopover: true
-            });
-          }
-        }*/
+        nameLocations.push(document.getElementById('start').value);       //insert start and end state
+        nameLocations.push(document.getElementById('end').value);
+
+        console.log('nameLocations.length = ' + nameLocations.length.toString());
+        console.log('nameLocations = ' + nameLocations.toString());
+
+        //copies waypoints into global array
+        //points_of_interests = waypts.slice(0);
 
         directionsService.route({
           origin: document.getElementById('start').value,
@@ -173,8 +308,10 @@
         }, function(response, status) {
           if (status === 'OK') {
             directionsDisplay.setDirections(response);
+
             var route = response.routes[0];
             var summaryPanel = document.getElementById('directions-panel');
+
             summaryPanel.innerHTML = '';
             // For each route, display summary information.
             for (var i = 0; i < route.legs.length; i++) {
@@ -185,14 +322,17 @@
               summaryPanel.innerHTML += route.legs[i].end_address + '<br>';
               summaryPanel.innerHTML += route.legs[i].distance.text + '<br><br>';
             }
+            console.log('End of route reached...');
           } else {
             window.alert('Directions request failed due to ' + status);
           }
         });
+
       }
+
     </script>
     <script async defer
-    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDdCAy7ootbjVOT9tQYPFI20kbNhWKDeG0&callback=initMap">
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDdCAy7ootbjVOT9tQYPFI20kbNhWKDeG0&libraries=places&callback=initMap">
     </script>
   </body>
 </html>
