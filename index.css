@@ -491,9 +491,6 @@ ul {
   margin-bottom: 3%;
 }
 
-.primary-color {
-  color: #e67e22 !important;
-}
 
 .header-link{
   display: inline-block;
@@ -712,6 +709,10 @@ small{
   font-size: 50px !important;
   line-height: 72px !important;
 }
+.primary-color {
+  color: #e67e22 !important;
+}
+
 
 
 
