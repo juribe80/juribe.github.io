@@ -649,6 +649,8 @@ h3.menu-item-title {
   margin-top: 100px !important;
   display: block;
   margin: auto;
+  width: 70% !important;
+  max-width: 350px !important;
 }
 
 .alcohol-message {
@@ -711,6 +713,14 @@ small{
 }
 .primary-color {
   color: #e67e22 !important;
+}
+
+#arrow {
+  display: inline !important;
+}
+
+.about-container{
+  display: inline !important;
 }
 
 
