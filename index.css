@@ -492,7 +492,7 @@ ul {
 }
 
 .primary-color {
-  color: #e67e22;
+  color: #e67e22 !important;
 }
 
 .header-link{
@@ -707,7 +707,11 @@ h3.menu-item-title {
 small{
   color: #c9c1ac !important;
 }
-
+.americano-title {
+  font-weight: 700 !important;
+  font-size: 50px !important;
+  line-height: 72px !important;
+}
 
 
 
